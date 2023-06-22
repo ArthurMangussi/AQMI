@@ -5,7 +5,6 @@ import indicadores
 import streamlit as st
 from globais import *
 from configparser import ConfigParser
-from PIL import Image
 
 config = ConfigParser()
 config.read("parametros.ini")
@@ -28,8 +27,8 @@ with col1:
     st.write("")
 
 with col2:
-    logo = Image.open(pasta_raiz +'Logo.png')
-    st.image(logo, width = 100)
+    logo_image = "https://github.com/ArthurMangussi/AQIM/blob/main/Logo.png?raw=true"
+    st.image(logo_image, width = 100)
 
 with col3:
     st.write("")
@@ -42,11 +41,11 @@ st.sidebar.write("---")
 
 c1, c2 = st.sidebar.columns(2)
 with c1:
-    hcpa = Image.open(pasta_raiz +'HCPA.png')
-    st.image(hcpa, width = 150)
+    logo_hcpa = "https://github.com/ArthurMangussi/AQIM/blob/main/HCPA.png?raw=true"
+    st.image(logo_hcpa, width = 150)
 with c2:
-    ufcspa = Image.open(pasta_raiz +'UFCSPA.png')
-    st.image(ufcspa, width = 150)
+    logo_ufcspa = "https://github.com/ArthurMangussi/AQIM/blob/main/ufcspa.png?raw=true"
+    st.image(logo_ufcspa, width = 150)
 
 
 page = PAGES[selection]
