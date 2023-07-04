@@ -27,7 +27,7 @@ with col1:
     st.write("")
 
 with col2:
-    logo_image = "https://github.com/ArthurMangussi/AQIM/blob/main/Logo.png?raw=true"
+    logo_image = "https://github.com/ArthurMangussi/AQMI/blob/main/AQMI.png?raw=true"
     st.image(logo_image, width = 100)
 
 with col3:
