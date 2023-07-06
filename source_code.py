@@ -39,14 +39,14 @@ selection = st.sidebar.radio("", list(PAGES.keys()))
 st.sidebar.write("---")
 
 
-c1, c2 = st.sidebar.columns(2)
+c1, c2, c3 = st.sidebar.columns([1,2,1])
 with c1:
-    logo_hcpa = "https://github.com/ArthurMangussi/AQIM/blob/main/HCPA.png?raw=true"
-    st.image(logo_hcpa, width = 150)
+    st.write("")
 with c2:
     logo_ufcspa = "https://github.com/ArthurMangussi/AQIM/blob/main/ufcspa.png?raw=true"
     st.image(logo_ufcspa, width = 150)
-
+with c3:
+    st.write("")
 
 page = PAGES[selection]
 page.app()
