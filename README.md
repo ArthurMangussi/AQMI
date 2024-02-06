@@ -7,7 +7,19 @@ O software AQMI foi desenvolvido na linguagem Python versão 3.10.6. O objetivo 
 
 Quando utilizar essa ferramenta em estudos acadêmicos, por favor, se refira dessa maneira:
 
-AQMI version 1.0 [1] Mangussi et al. (2022) 
+```
+@article{AQMI2023, 
+title={AQMI: Software for assessing the quality of mammographic images}, 
+author={Mangussi, Arthur Dantas and Pianoschi, Thatiane Alves and Cecchetto, Bernardo and Botelho, Viviane Rodrigues}, 
+journal={Brazilian Journal of Radiation Sciences}, 
+year={2023}, 
+volume={11}, 
+url={https://bjrs.org.br/revista/index.php/REVISTA/article/view/2254}, 
+DOI={10.15392/2319-0612.2023.2254},
+number={3}, 
+month={Jul.}, 
+pages={1–16} }
+```
 
 ---
 ## Utilizar o software (Windows)
