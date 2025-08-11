@@ -19,7 +19,7 @@ def create_circular_mask(h, w, center=None, radius=None):
         radius = min(center[0], center[1], w-center[0], h-center[1])
 
     Y, X = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
+    dist_from_center = np.sqrt((X - center[0])**2 + (Y - center[1])**2)
 
     mask = dist_from_center <= radius
     return mask
@@ -35,7 +35,7 @@ def create_df_tags_dicom(imagem, imagem_dicom):
     for i in range(0, len(lista_tags)):
         valores.append(str(lista_tags[i])[53:])
         # atributos.append(str(lista_tags[i])[:53])
-        atributos.append(str(lista_tags[i])[:12])
+        atributos.append(str(lista_tags[i].tag))
 
     data = pd.DataFrame(index=[(imagem_dicom.name)[:12]],
                         columns=atributos)
@@ -68,8 +68,8 @@ def plot_image_draw(img, nome):
     axes.set_aspect(1)
     axes.add_artist(draw_circle)
     axes.add_artist(draw_circle2)
-    plt.annotate('ROI', (570, 70),color='white')
-    plt.annotate('BG', (450, 200),color='white')
+    plt.annotate('ROI', (570, 70), color='white')
+    plt.annotate('BG', (450, 200), color='white')
 
     axes.get_xaxis().set_visible(False)
     axes.get_yaxis().set_visible(False)
@@ -96,7 +96,9 @@ def histogram(imagem_cortada):
     hist, edges = np.histogram(imagem_cortada, bins = bins)
     fig, ax = plt.subplots()
     ax.plot(hist, label='Imagem Teste')
-    return hist,fig
+    ax.set_xlabel('Intensidade')
+    ax.set_ylabel('Número de pixels')
+    return hist, fig
 
 
 def app():
@@ -107,7 +109,7 @@ def app():
     st.title("Teste da qualidade da imagem")
     st.write('''
     Nessa página, será possível realizar o teste de qualidade da imagem para a mamografia, segundo a IN N° 92 da ANVISA.
-   
+
     ''')
 
     df = pd.read_csv(pasta_csv + "/Header.csv", sep=";")
@@ -124,7 +126,7 @@ def app():
         st.info(
             f'Diretório de armazenamento do teste: {pasta_sala_equipamento}')
         nome_equipamento = st.selectbox('Selecione o ID do equipamento associado a imagem', list_respostas,
-                                        format_func=lambda x: 'Selecione uma opção' if x == '' else x)
+                                        format_func=lambda x: 'Selecione uma opção' if (isinstance(x, str) and x == '') else str(x))
 
         if nome_equipamento == '':
             st.write('')
@@ -133,34 +135,35 @@ def app():
             img_upload = dicom.dcmread(upload_image)
 
             # Criando o dataset para as tags DICOM
-            valentina = create_df_tags_dicom(img_upload, upload_image)
+            valentina = create_df_tags_dicom(img_upload,upload_image)
 
-            KVP = valentina['(0018, 0060)']
-            MAS = valentina['(0018, 1152)']
-            anodo = valentina['(0018, 1191)']
-            filtro = valentina['(0018, 7050)']
-            shape_fov = valentina['(0018, 1147)']
-            dimension_fov = valentina['(0018, 1149)']
-            organ_dose = valentina[('(0040, 0316)')]
-            distancia_paciente = valentina['(0018, 1111)']
-            distancia_detecttor = valentina['(0018, 1110)']
-            filter_type = valentina['(0018, 1160)']
-            focal_spot = valentina['(0018, 1190)']
-            body_part_thickness = valentina['(0018, 11a0)']
-            grid = valentina['(0018, 1166)']
-            AEC = valentina['(0018, 7060)']
-            data_aquisicao = valentina['(0008, 0022)']
+            KVP = valentina['(0018,0060)']
+            MAS = valentina['(0018,1152)']
+            anodo = valentina['(0018,1191)']
+            filtro = valentina['(0018,7050)']
+            shape_fov = valentina['(0018,1147)']
+            dimension_fov = valentina['(0018,1149)']
+            organ_dose = valentina['(0040,0316)']
+            distancia_paciente = valentina['(0018,1111)']
+            distancia_detecttor = valentina['(0018,1110)']
+            filter_type = valentina['(0018,1160)']
+            focal_spot = valentina['(0018,1190)']
+            body_part_thickness = valentina['(0018,11A0)']
+            grid = valentina['(0018,1166)']
+            AEC = valentina['(0018,7060)']
+            data_aquisicao = valentina['(0008,0022)']
 
-            kVp = [float(x[1:3]) for x in KVP]
-            mAs = [float(x[1:3]) for x in MAS]
+            kVp = [float(x.replace("'", "").strip()) for x in KVP]
+            mAs = [float(x.replace("'", "").strip()) for x in MAS]
 
             # Arrumando a data
-            ano = int(data_aquisicao.values[0][1:5])
-            mes = int(data_aquisicao.values[0][5:7])
-            dia = int(data_aquisicao.values[0][7:9])
+            data_str = data_aquisicao.values[0].replace("'", "").strip()
+            ano = int(data_str[0:4])  # започва от 0
+            mes = int(data_str[4:6])
+            dia = int(data_str[6:8])
             date_aquisition = datetime(ano, mes, dia).date()
             # Arrumando AEC
-            modo_aec = AEC.tolist()[0][1:7]
+            modo_aec = AEC.tolist()[0]
 
             roi_cortada = crop_ROI(img_upload)
             imagem_negativada_cnr = roi_CNR(roi_cortada)
@@ -169,48 +172,55 @@ def app():
                 h, w, center=(150, 90), radius=40)
             mask_bg = create_circular_mask(h, w, center=(170, 200), radius=40)
 
-            roi_massa_cortada = imagem_negativada_cnr*mask_massa
-            roi_bg_cortada = imagem_negativada_cnr * mask_bg
+            roi_massa_cortada = imagem_negativada_cnr[mask_massa]
+            roi_bg_cortada = imagem_negativada_cnr[mask_bg]
 
             # Calculando as métricas estatísticas para as ROIs
             path_salvar_dados_indicadores = pasta_indicadores
             dados_hist, img_hist = histogram(roi_cortada)
-            plt.savefig(path_salvar_dados_indicadores +
-                        f'\ {upload_image.name}'+'.png') # Salvando o histograma
+            plt.savefig(path_salvar_dados_indicadores+f'\{upload_image.name}'+'.png')  # Salvando o histograma
             media = np.mean(img_upload.pixel_array)
             variancia = np.var(img_upload.pixel_array)
-            assimetria = skew(dados_hist)
-            curtose = kurtosis(dados_hist)
-            
-            
-            #st.write(f'Media: {media} e Variancia: {variancia}')
-            SNR = np.mean(roi_bg_cortada) / np.std(roi_bg_cortada)
-            CNR = np.absolute(np.mean(roi_bg_cortada) - np.mean(roi_massa_cortada)) / (
-                np.sqrt((np.std(roi_bg_cortada) ** 2 + np.std(roi_massa_cortada) ** 2) / 2))
-             
-            
-            data_tags = pd.DataFrame({"nome": upload_image.name,
-                                      "Data": data_aquisicao,
-                                      "kVp": kVp,
-                                      "mAs": mAs,
-                                      "AEC": modo_aec,
-                                      "anodo": anodo.tolist(),
-                                      "filtro": filtro.tolist(),
-                                      "dimensao_fov": dimension_fov.tolist(),
-                                      "shape_fov": shape_fov.tolist(),
-                                      "organ_dose": organ_dose.tolist(),
-                                      "distancia_paciente": distancia_paciente.tolist(),
-                                      "distancia_detector": distancia_detecttor.tolist(),
-                                      "filter_type": filter_type.tolist(),
-                                      "focal_spot": focal_spot.tolist(),
-                                      "body_part_thickness": body_part_thickness.tolist(),
-                                      "grid": grid.tolist()})
+            pixel_values = img_upload.pixel_array.flatten()
+            assimetria = skew(pixel_values)
+            curtose = kurtosis(pixel_values)
 
-            #data_tags['organ_dose'] = data_tags['organ_dose'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
-            #data_tags['distancia_paciente'] = data_tags['distancia_paciente'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
-            #data_tags['distancia_detector'] = data_tags['distancia_detector'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
-            #data_tags['focal_spot'] = data_tags['focal_spot'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
-            #data_tags['body_part_thickness'] = data_tags['body_part_thickness'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
+            # st.write(f'Media: {media} e Variancia: {variancia}')
+            SNR = np.mean(roi_massa_cortada) / np.std(roi_bg_cortada)
+            CNR = np.absolute(np.mean(roi_bg_cortada) - np.mean(roi_massa_cortada)) / np.std(roi_bg_cortada)
+
+            def clean_str(value):
+                if isinstance(value, list):
+                    return ', '.join(str(v).replace("'", "").replace("[", "").replace("]", "").strip() for v in value)
+                elif isinstance(value, str):
+                    return value.replace("'", "").strip()
+                else:
+                    return value
+
+            data_tags = pd.DataFrame({
+                "nome": upload_image.name,
+                "Data": clean_str(data_aquisicao.values[0]),
+                "kVp": kVp,
+                "mAs": mAs,
+                "AEC": clean_str(modo_aec),
+                "anodo": clean_str(anodo.tolist()),
+                "filtro": clean_str(filtro.tolist()),
+                "dimensao_fov": clean_str(dimension_fov.tolist()),
+                "shape_fov": clean_str(shape_fov.tolist()),
+                "organ_dose": clean_str(organ_dose.tolist()),
+                "distancia_paciente": clean_str(distancia_paciente.tolist()),
+                "distancia_detector": clean_str(distancia_detecttor.tolist()),
+                "filter_type": clean_str(filter_type.tolist()),
+                "focal_spot": clean_str(focal_spot.tolist()),
+                "body_part_thickness": clean_str(body_part_thickness.tolist()),
+                "grid": clean_str(grid.tolist())
+            })
+
+            # data_tags['organ_dose'] = data_tags['organ_dose'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
+            # data_tags['distancia_paciente'] = data_tags['distancia_paciente'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
+            # data_tags['distancia_detector'] = data_tags['distancia_detector'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
+            # data_tags['focal_spot'] = data_tags['focal_spot'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
+            # data_tags['body_part_thickness'] = data_tags['body_part_thickness'].apply(lambda x: np.fromstring(x.replace('"',''), sep=' '))
 
             with st.container():
                 # Criando colunas no Dashboard
@@ -229,7 +239,6 @@ def app():
                     n_massas = form.number_input(
                         label='Número de massas visualizadas', min_value=0, max_value=5, step=1)
                     submit_button = form.form_submit_button(label='Avaliar')
-                    
 
                 ########################## Código para dataset Valentina ##################################
                 with c2:
@@ -237,8 +246,8 @@ def app():
                     imagem_negativada = cv2.bitwise_not(roi_cortada)
 
                     st.write(plot_image(imagem_negativada,
-                             upload_image.name, 'gray'))
-                                     
+                                        upload_image.name, 'gray'))
+
             expander = st.expander(
                 "Parâmetros técnicos de aquisição da imagem")
             with expander:
@@ -246,7 +255,7 @@ def app():
                     f"Informações extraídas do cabeçalho DICOM da imagem {upload_image.name}.")
                 a = data_tags.iloc[[0]]
                 st.write(a)
-# ---------------------------------------------------------------------------------------------------------
+            # ---------------------------------------------------------------------------------------------------------
             if submit_button:
 
                 # Avaliando a imagem
@@ -285,34 +294,31 @@ def app():
                     "Curtose": curtose,
                     "SNR": SNR,
                     "CNR": CNR,
-                    "X_BG" : np.mean(roi_bg_cortada),
+                    "X_BG": np.mean(roi_bg_cortada),
                     "Sigma": np.std(roi_bg_cortada),
-                    "X_ROI" :np.mean(roi_massa_cortada)
+                    "X_ROI": np.mean(roi_massa_cortada)
                 }
                 )
+
                 df1 = pd.read_csv(pasta_sala_equipamento +
-                                  "\\" + nome_equipamento + ".csv", sep=";")
+                                  "\\" + str(nome_equipamento) + ".csv", sep=";")
                 df2 = pd.concat([df, df1])
-                df2.to_csv(pasta_sala_equipamento + "\\" + nome_equipamento +
+                df2.to_csv(pasta_sala_equipamento + "\\" + str(nome_equipamento) +
                            ".csv", sep=";", encoding='utf-8', index=False)
 
-            
             path_sala = pasta_sala_equipamento
-        
+
             roi_desenhada = plot_image_draw(imagem_negativada, upload_image.name)
-            plt.savefig(path_salvar_dados_indicadores +
-                        f'\ CNR {upload_image.name}'+'.png')
+            plt.savefig(path_salvar_dados_indicadores+f'\CNR_{upload_image.name}'+'.png')
 
             for item in list_respostas[1:]:
                 id_sala = item
                 name_pasta = f'{pasta_sala_imagens}\{id_sala}'
                 try:
-                    os.makedirs(name_pasta,  exist_ok=True)
+                    os.makedirs(name_pasta, exist_ok=True)
                 except OSError as error:
                     st.write('Diretório não pode ser criado')
 
-            
             # Salvando a imagem em PNG
             bb = plot_image(imagem_negativada, upload_image.name, 'gray')
-            plt.savefig(
-                f'{pasta_sala_imagens}\{nome_equipamento}\{upload_image.name[:-4]}.png')
+            plt.savefig(f'{pasta_sala_imagens}\{nome_equipamento}\{upload_image.name[:-4]}.png')
